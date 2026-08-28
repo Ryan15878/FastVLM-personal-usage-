@@ -1,0 +1,53 @@
+workflows:
+  fastvlm-ios-test:
+    name: FastVLM iOS Build Test
+
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+
+    environment:
+      xcode: 16.4
+
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/app/FastVLM/model
+        - $HOME/Library/Caches/org.swift.swiftpm
+
+    scripts:
+      - name: Check Xcode project
+        script: |
+          xcodebuild -list \
+            -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj"
+
+      - name: Download FastVLM 0.5B
+        script: |
+          MODEL_DIR="$CM_BUILD_DIR/app/FastVLM/model"
+
+          if [ -d "$MODEL_DIR" ] && [ "$(ls -A "$MODEL_DIR" 2>/dev/null)" ]; then
+            echo "FastVLM model already exists, skip download."
+          else
+            chmod +x "$CM_BUILD_DIR/app/get_pretrained_mlx_model.sh"
+
+            "$CM_BUILD_DIR/app/get_pretrained_mlx_model.sh" \
+              --model 0.5b \
+              --dest "$MODEL_DIR"
+          fi
+
+      - name: Check downloaded model
+        script: |
+          echo "Model files:"
+          du -sh "$CM_BUILD_DIR/app/FastVLM/model"
+          find "$CM_BUILD_DIR/app/FastVLM/model" -maxdepth 2 -type f | head -50
+
+      - name: Build FastVLM
+        script: |
+          xcodebuild build \
+            -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj" \
+            -scheme "FastVLM App" \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+
+    artifacts:
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - /tmp/xcodebuild_logs/*.log
