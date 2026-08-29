@@ -45,6 +45,10 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
+      - name: Install Metal Toolchain
+        script: |
+          xcodebuild -downloadComponent MetalToolchain
+
       - name: Create IPA
         script: |
           APP_PATH=$(find "$CM_BUILD_DIR/build/Build/Products" \
