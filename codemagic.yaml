@@ -1,12 +1,12 @@
 workflows:
-  fastvlm-ios-test:
-    name: FastVLM iOS Build Test
+  fastvlm-iphone-unsigned:
+    name: FastVLM iPhone Unsigned Build
 
     instance_type: mac_mini_m2
     max_build_duration: 120
 
     environment:
-      xcode: 16.4
+      xcode: latest
 
     cache:
       cache_paths:
@@ -14,17 +14,17 @@ workflows:
         - $HOME/Library/Caches/org.swift.swiftpm
 
     scripts:
-      - name: Check Xcode project
+      - name: Show Xcode project
         script: |
           xcodebuild -list \
             -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj"
 
-      - name: Download FastVLM 0.5B
+      - name: Download FastVLM 0.5B model
         script: |
           MODEL_DIR="$CM_BUILD_DIR/app/FastVLM/model"
 
           if [ -d "$MODEL_DIR" ] && [ "$(ls -A "$MODEL_DIR" 2>/dev/null)" ]; then
-            echo "FastVLM model already exists, skip download."
+            echo "Model already exists."
           else
             chmod +x "$CM_BUILD_DIR/app/get_pretrained_mlx_model.sh"
 
@@ -33,21 +33,37 @@ workflows:
               --dest "$MODEL_DIR"
           fi
 
-      - name: Check downloaded model
-        script: |
-          echo "Model files:"
-          du -sh "$CM_BUILD_DIR/app/FastVLM/model"
-          find "$CM_BUILD_DIR/app/FastVLM/model" -maxdepth 2 -type f | head -50
-
-      - name: Build FastVLM
+      - name: Build unsigned iPhone app
         script: |
           xcodebuild build \
             -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj" \
             -scheme "FastVLM App" \
-            -sdk iphonesimulator \
             -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$CM_BUILD_DIR/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Create IPA
+        script: |
+          APP_PATH=$(find "$CM_BUILD_DIR/build/Build/Products" \
+            -path "*iphoneos*" \
+            -name "*.app" \
+            -type d \
+            | head -1)
+
+          echo "Found app:"
+          echo "$APP_PATH"
+
+          mkdir -p "$CM_BUILD_DIR/ipa/Payload"
+
+          cp -R "$APP_PATH" "$CM_BUILD_DIR/ipa/Payload/"
+
+          cd "$CM_BUILD_DIR/ipa"
+
+          zip -r "$CM_BUILD_DIR/FastVLM-unsigned.ipa" Payload
 
     artifacts:
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - /tmp/xcodebuild_logs/*.log
+      - FastVLM-unsigned.ipa
+      - build/Build/Products/**/*.app
