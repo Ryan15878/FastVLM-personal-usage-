@@ -53,6 +53,23 @@ workflows:
           echo "=== Check Metal compiler ==="
           xcrun --sdk iphoneos metal -v
 
+      - name: Apply FastVLM Xcode 26 compatibility patch
+        script: |
+          set -e
+
+          curl -L --fail --retry 3 \
+            "https://raw.githubusercontent.com/kimanjea/ml-fastvlm/849458ecea1d2c03abcf3513f0c8de267de7f758/app/FastVLM/FastVLM.swift" \
+            -o "$CM_BUILD_DIR/app/FastVLM/FastVLM.swift"
+
+          echo "=== Verify patch ==="
+
+          grep -n "ScaledDotProductAttentionMaskMode" \
+            "$CM_BUILD_DIR/app/FastVLM/FastVLM.swift" | head
+
+          grep -n "frames" \
+            "$CM_BUILD_DIR/app/FastVLM/FastVLM.swift" | head
+
+
       - name: Build unsigned iPhone app
         script: |
           set +e
