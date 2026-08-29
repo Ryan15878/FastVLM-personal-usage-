@@ -45,9 +45,25 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
-      - name: Install Metal Toolchain
+      - name: Install and verify Metal Toolchain
         script: |
-          xcodebuild -downloadComponent MetalToolchain
+          set -e
+
+          echo "=== Select Xcode 26.4 ==="
+          sudo xcode-select -s /Applications/Xcode-26.4.app/Contents/Developer
+
+          echo "=== Current Xcode ==="
+          xcode-select -p
+          xcodebuild -version
+
+          echo "=== Download Metal Toolchain ==="
+          xcodebuild -downloadComponent metalToolchain
+
+          echo "=== Locate Metal compiler ==="
+          xcrun --sdk iphoneos --find metal
+
+          echo "=== Check Metal compiler ==="
+          xcrun --sdk iphoneos metal -v
 
       - name: Create IPA
         script: |
