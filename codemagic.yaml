@@ -32,19 +32,7 @@ workflows:
               --model 0.5b \
               --dest "$MODEL_DIR"
           fi
-
-      - name: Build unsigned iPhone app
-        script: |
-          xcodebuild build \
-            -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj" \
-            -scheme "FastVLM App" \
-            -configuration Debug \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "$CM_BUILD_DIR/build" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-
+          
       - name: Install and verify Metal Toolchain
         script: |
           set -e
@@ -64,6 +52,18 @@ workflows:
 
           echo "=== Check Metal compiler ==="
           xcrun --sdk iphoneos metal -v
+
+      - name: Build unsigned iPhone app
+        script: |
+          xcodebuild build \
+            -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj" \
+            -scheme "FastVLM App" \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$CM_BUILD_DIR/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
       - name: Create IPA
         script: |
