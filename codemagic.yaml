@@ -55,6 +55,10 @@ workflows:
 
       - name: Build unsigned iPhone app
         script: |
+          set +e
+
+          LOG_FILE="$CM_BUILD_DIR/xcodebuild.log"
+
           xcodebuild build \
             -project "$CM_BUILD_DIR/app/FastVLM.xcodeproj" \
             -scheme "FastVLM App" \
@@ -63,7 +67,24 @@ workflows:
             -derivedDataPath "$CM_BUILD_DIR/build" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            > "$LOG_FILE" 2>&1
+
+          STATUS=$?
+
+          cat "$LOG_FILE"
+
+          echo ""
+          echo "======================================"
+          echo "            XCODE ERRORS"
+          echo "======================================"
+
+          grep -n -C 5 "error:" "$LOG_FILE" || true
+
+          echo ""
+          echo "======================================"
+
+          exit $STATUS
 
       - name: Create IPA
         script: |
