@@ -103,7 +103,7 @@ workflows:
 
           exit $STATUS
 
-      - name: Ad-hoc sign app for AltServer
+      - name: Ad-hoc sign for AltServer
         script: |
           set -e
 
@@ -113,26 +113,24 @@ workflows:
             -type d \
             | head -1)
 
-          echo "App:"
-          echo "$APP_PATH"
+          echo "APP_PATH=$APP_PATH"
+          test -n "$APP_PATH"
 
-          echo "=== Sign embedded frameworks ==="
-
+          echo "=== Sign frameworks ==="
           find "$APP_PATH" -type d -name "*.framework" \
             | sort -r \
             | while read FRAMEWORK; do
-                echo "Signing $FRAMEWORK"
+                echo "Signing: $FRAMEWORK"
                 codesign --force \
                   --sign - \
                   --timestamp=none \
                   "$FRAMEWORK"
               done
 
-          echo "=== Sign embedded dylibs ==="
-
+          echo "=== Sign dylibs ==="
           find "$APP_PATH" -type f -name "*.dylib" \
             | while read DYLIB; do
-                echo "Signing $DYLIB"
+                echo "Signing: $DYLIB"
                 codesign --force \
                   --sign - \
                   --timestamp=none \
@@ -140,15 +138,16 @@ workflows:
               done
 
           echo "=== Sign app ==="
-
           codesign --force \
             --sign - \
             --timestamp=none \
             "$APP_PATH"
 
           echo "=== Verify ==="
-          codesign -dv "$APP_PATH" 2>&1
-
+          codesign --verify \
+            --deep \
+            --strict \
+            "$APP_PATH"
 
       - name: Create IPA
         script: |
